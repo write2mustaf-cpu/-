@@ -1,0 +1,825 @@
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>أثير | منصة الذكاء الاصطناعي</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#a855f7',
+                        dark: '#0f172a',
+                        darker: '#020617',
+                        panel: '#1e293b'
+                    },
+                    fontFamily: {
+                        sans: ['Tajawal', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Markdown & Highlight -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <style>
+        body { font-family: 'Tajawal', sans-serif; background-color: #020617; color: #e2e8f0; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); }
+        .msg-user { background: linear-gradient(135deg, #6366f1, #a855f7); color: white; border-radius: 1rem 1rem 0 1rem; }
+        .msg-ai { background: #1e293b; border-radius: 1rem 1rem 1rem 0; border: 1px solid #334155; }
+        
+        .markdown-body pre { background: #0f172a; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin: 1rem 0; border: 1px solid #334155; }
+        .markdown-body code { font-family: monospace; }
+        .markdown-body p { margin-bottom: 0.75rem; line-height: 1.6; }
+        .markdown-body ul { list-style: disc; padding-right: 1.5rem; margin-bottom: 0.75rem; }
+        .markdown-body ol { list-style: decimal; padding-right: 1.5rem; margin-bottom: 0.75rem; }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 { font-weight: bold; margin: 1rem 0 0.5rem 0; }
+        .markdown-body a { color: #818cf8; text-decoration: underline; }
+        .markdown-body a:hover { color: #a855f7; }
+        
+        .typing-dot { animation: typing 1.4s infinite ease-in-out both; }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+        
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .sidebar { transition: transform 0.3s ease; }
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; top: 0; right: 0; bottom: 0; width: 280px; z-index: 50; transform: translateX(100%); }
+            .sidebar.open { transform: translateX(0); }
+            .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 40; backdrop-filter: blur(2px); }
+            .overlay.open { display: block; }
+        }
+    </style>
+</head>
+<body class="overflow-hidden flex h-screen">
+
+    <!-- Overlay -->
+    <div id="sidebarOverlay" class="overlay md:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar glass border-l border-slate-800 w-72 flex flex-col h-full md:relative z-50">
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-2 text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
+                <i class="fas fa-brain text-indigo-400"></i> أثير
+            </div>
+            <button class="md:hidden text-slate-400 hover:text-white" onclick="toggleSidebar()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="p-3">
+            <button onclick="startNewChat()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg py-2.5 px-4 font-medium transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-900/20">
+                <i class="fas fa-plus"></i> محادثة جديدة
+            </button>
+        </div>
+        
+        <div class="px-3 pb-2">
+            <div class="relative">
+                <i class="fas fa-search absolute right-3 top-3 text-slate-500 text-sm"></i>
+                <input type="text" id="searchInput" placeholder="بحث في المحادثات..." class="w-full bg-slate-800/80 text-sm text-slate-200 rounded-lg py-2 pr-9 pl-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 border border-slate-700">
+            </div>
+        </div>
+        
+        <div id="chatList" class="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+            <!-- Chats -->
+        </div>
+        
+        <div class="p-3 border-t border-slate-800">
+            <button onclick="openSettings()" class="w-full flex items-center gap-3 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg px-3 py-2 transition">
+                <i class="fas fa-cog"></i> الإعدادات
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="flex-1 flex flex-col h-full relative bg-darker">
+        <!-- Header -->
+        <header class="glass border-b border-slate-800 p-4 flex items-center justify-between z-30">
+            <div class="flex items-center gap-3">
+                <button class="md:hidden text-slate-300 hover:text-white" onclick="toggleSidebar()">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <div class="relative group">
+                    <button id="modelBtn" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-sm font-medium py-1.5 px-3 rounded-lg transition border border-slate-700">
+                        <span id="currentModelName">Mistral Medium</span>
+                        <i class="fas fa-chevron-down text-xs text-slate-400"></i>
+                    </button>
+                    <div id="modelDropdown" class="hidden absolute top-full mt-2 right-0 w-56 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-40 overflow-hidden py-1"></div>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3 text-sm">
+                <div id="connectionStatus" class="flex items-center gap-1.5 text-slate-400 bg-slate-800/50 px-3 py-1 rounded-full border border-slate-700">
+                    <div class="w-2 h-2 rounded-full bg-slate-500" id="statusDot"></div>
+                    <span id="statusText">غير متصل</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Chat Area -->
+        <div id="messagesContainer" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 scroll-smooth">
+            <div id="welcomeScreen" class="h-full flex flex-col items-center justify-center text-center fade-in">
+                <div class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 mb-6">
+                    <i class="fas fa-robot text-4xl text-white"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-white mb-2">مرحباً بك في أثير</h1>
+                <p class="text-slate-400 max-w-md">منصتك الذكية للتحدث مع نماذج Mistral. اسأل، أنشئ أكواد، أو طلب ملفات ومشاريع كاملة.</p>
+            </div>
+        </div>
+
+        <!-- Input -->
+        <div class="p-4 md:p-6 bg-gradient-to-t from-darker via-darker/95 to-transparent absolute bottom-0 left-0 right-0 z-20">
+            <div class="max-w-3xl mx-auto relative">
+                <textarea id="userInput" rows="1" placeholder="اكتب رسالتك هنا... (أدخل لإرسال، Shift+Enter لسطر جديد)" class="w-full bg-slate-800 border border-slate-700 rounded-2xl pl-12 pr-4 py-3 text-slate-200 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500 transition max-h-40 shadow-inner"></textarea>
+                <button id="sendBtn" onclick="handleSend()" class="absolute left-3 bottom-3 w-9 h-9 flex items-center justify-center bg-indigo-600 hover:bg-indigo-500 text-white rounded-full transition disabled:opacity-50 shadow-md">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+                <button id="stopBtn" onclick="stopGeneration()" class="hidden absolute left-3 bottom-3 w-9 h-9 items-center justify-center bg-red-600 hover:bg-red-500 text-white rounded-full transition shadow-md">
+                    <i class="fas fa-stop"></i>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="glass border border-slate-700 w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="p-5 border-b border-slate-700 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-white">الإعدادات</h2>
+                <button onclick="closeSettings()" class="text-slate-400 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto space-y-6">
+                <!-- API -->
+                <div class="space-y-3">
+                    <h3 class="font-bold text-lg text-indigo-400 flex items-center gap-2"><i class="fas fa-key"></i> مفتاح Mistral API</h3>
+                    <p class="text-sm text-slate-400">أدخل مفتاحك الخاص للاتصال بنماذج الذكاء الاصطناعي. لا يشارك مفتاحك مع أي خادم خارجي.</p>
+                    <div class="relative flex flex-wrap gap-2">
+                        <input type="password" id="apiKeyInput" placeholder="أدخل مفتاح API الخاص بك" class="flex-1 min-w-[200px] bg-slate-800 border border-slate-700 rounded-lg py-2 px-3 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                        <button onclick="toggleApiKeyVisibility()" class="px-3 bg-slate-700 hover:bg-slate-600 rounded-lg transition" title="إظهار/إخفاء"><i class="fas fa-eye"></i></button>
+                        <button onclick="saveApiKey()" class="px-4 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-medium transition">حفظ</button>
+                        <button onclick="testConnection()" class="px-4 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-medium transition">اختبار</button>
+                    </div>
+                    <div id="apiStatusMsg" class="text-sm hidden mt-1"></div>
+                </div>
+                
+                <hr class="border-slate-700">
+                
+                <!-- Assistant -->
+                <div class="space-y-4">
+                    <h3 class="font-bold text-lg text-indigo-400 flex items-center gap-2"><i class="fas fa-sliders-h"></i> تهيئة المساعد</h3>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">النموذج الافتراضي</label>
+                        <select id="defaultModelSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-2 px-3 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">تعليمات النظام (System Prompt)</label>
+                        <textarea id="systemPromptInput" rows="3" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-2 px-3 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"></textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1 flex justify-between">
+                            <span>درجة الإبداع (Temperature)</span>
+                            <span id="tempValue" class="text-indigo-400">0.7</span>
+                        </label>
+                        <input type="range" id="tempRange" min="0" max="1" step="0.1" value="0.7" class="w-full accent-indigo-500" oninput="document.getElementById('tempValue').innerText = this.value">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">الحد الأقصى للرموز (Max Tokens)</label>
+                        <input type="number" id="maxTokensInput" value="2048" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-2 px-3 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    </div>
+                </div>
+                
+                <hr class="border-slate-700">
+                
+                <!-- Data -->
+                <div class="space-y-3">
+                    <h3 class="font-bold text-lg text-red-400 flex items-center gap-2"><i class="fas fa-shield-alt"></i> الخصوصية والبيانات</h3>
+                    <p class="text-sm text-slate-400">جميع بياناتك ومحادثاتك ومفتاحك محفوظة محلياً في متصفحك فقط.</p>
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="exportData()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition flex items-center gap-2"><i class="fas fa-download"></i> تصدير المحادثات</button>
+                        <button onclick="clearAllData()" class="px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-400 hover:text-red-300 rounded-lg text-sm transition flex items-center gap-2"><i class="fas fa-trash-alt"></i> حذف جميع البيانات</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toasts -->
+    <div id="toastContainer" class="fixed bottom-24 right-4 z-[60] space-y-2"></div>
+
+    <script>
+        const MISTRAL_MODELS = [
+            { id: 'open-mistral-7b', name: 'Mistral 7B (سريع)' },
+            { id: 'mistral-small-latest', name: 'Mistral Small (متوازن)' },
+            { id: 'mistral-medium-latest', name: 'Mistral Medium (ذكي)' },
+            { id: 'mistral-large-latest', name: 'Mistral Large (أقوى)' },
+            { id: 'open-mixtral-8x7b', name: 'Mixtral 8x7B' },
+            { id: 'open-mixtral-8x22b', name: 'Mixtral 8x22B' },
+            { id: 'codestral-latest', name: 'Codestral (برمجة)' }
+        ];
+
+        const DEFAULT_SYSTEM_PROMPT = `أنت مساعد ذكي اسمه "أثير" (Aether) متخصص في مساعدة المستخدمين في البرمجة والإبداع.
+عندما يطلب منك المستخدم إنشاء ملف (مثل HTML أو CSS أو JS)، استخدم الصيغة التالية بالضبط لتتمكن الواجهة من عرضه كبطاقة قابلة للتنزيل:
+\`\`\`لغة filename="اسم الملف.الامتداد"
+المحتوى
+\`\`\`
+لا تضف أي نص قبل أو بعد كتلة الكود إلا إذا طلب المستخدم شرحًا.`;
+
+        let state = {
+            userId: localStorage.getItem('aether_userId') || crypto.randomUUID(),
+            apiKey: localStorage.getItem('aether_apiKey') || '',
+            currentModel: localStorage.getItem('aether_model') || 'mistral-medium-latest',
+            settings: JSON.parse(localStorage.getItem('aether_settings')) || {
+                systemPrompt: DEFAULT_SYSTEM_PROMPT,
+                temperature: 0.7,
+                maxTokens: 2048
+            },
+            chats: JSON.parse(localStorage.getItem('aether_chats')) || [],
+            activeChatId: localStorage.getItem('aether_activeChat') || null,
+            isStreaming: false,
+            abortController: null
+        };
+
+        function init() {
+            localStorage.setItem('aether_userId', state.userId);
+            renderModelDropdowns();
+            renderChatList();
+            updateConnectionStatus();
+            if (state.activeChatId && state.chats.find(c => c.id === state.activeChatId)) {
+                loadChat(state.activeChatId);
+            }
+            
+            const input = document.getElementById('userInput');
+            input.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 160) + 'px';
+            });
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                }
+            });
+            document.getElementById('searchInput').addEventListener('input', renderChatList);
+            
+            // Settings listeners
+            document.getElementById('defaultModelSelect').addEventListener('change', (e) => {
+                state.currentModel = e.target.value;
+                document.getElementById('currentModelName').innerText = MISTRAL_MODELS.find(m=>m.id===state.currentModel)?.name || state.currentModel;
+                saveState();
+            });
+            document.getElementById('systemPromptInput').addEventListener('change', e => state.settings.systemPrompt = e.target.value);
+            document.getElementById('tempRange').addEventListener('change', e => state.settings.temperature = parseFloat(e.target.value));
+            document.getElementById('maxTokensInput').addEventListener('change', e => state.settings.maxTokens = parseInt(e.target.value));
+        }
+
+        function saveState() {
+            localStorage.setItem('aether_apiKey', state.apiKey);
+            localStorage.setItem('aether_model', state.currentModel);
+            localStorage.setItem('aether_settings', JSON.stringify(state.settings));
+            localStorage.setItem('aether_chats', JSON.stringify(state.chats));
+            if (state.activeChatId) localStorage.setItem('aether_activeChat', state.activeChatId);
+        }
+
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const colors = { info: 'bg-slate-800 border-slate-700', success: 'bg-green-900/50 border-green-700 text-green-300', error: 'bg-red-900/50 border-red-700 text-red-300' };
+            const toast = document.createElement('div');
+            toast.className = `px-4 py-2 rounded-lg border shadow-lg text-sm fade-in ${colors[type]}`;
+            toast.innerText = msg;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebarOverlay').classList.toggle('open');
+        }
+
+        function updateConnectionStatus() {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            if (state.apiKey) {
+                dot.className = 'w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]';
+                text.innerText = 'متصل';
+                text.className = 'text-green-400';
+            } else {
+                dot.className = 'w-2 h-2 rounded-full bg-red-500';
+                text.innerText = 'يحتاج مفتاح API';
+                text.className = 'text-red-400';
+            }
+        }
+
+        function renderModelDropdowns() {
+            const dropdown = document.getElementById('modelDropdown');
+            dropdown.innerHTML = MISTRAL_MODELS.map(m => `
+                <button onclick="selectModel('${m.id}')" class="w-full text-right px-4 py-2 hover:bg-slate-700 text-sm ${m.id === state.currentModel ? 'text-indigo-400 bg-slate-700/50' : 'text-slate-200'}">
+                    ${m.name}
+                </button>
+            `).join('');
+                
+            document.getElementById('currentModelName').innerText = MISTRAL_MODELS.find(m => m.id === state.currentModel)?.name || state.currentModel;
+            
+            const btn = document.getElementById('modelBtn');
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                dropdown.classList.toggle('hidden');
+            };
+            document.addEventListener('click', (e) => {
+                if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+        }
+
+        function selectModel(id) {
+            state.currentModel = id;
+            document.getElementById('currentModelName').innerText = MISTRAL_MODELS.find(m => m.id === id)?.name || id;
+            document.getElementById('modelDropdown').classList.add('hidden');
+            saveState();
+            showToast(`تم التبديل إلى ${MISTRAL_MODELS.find(m => m.id === id)?.name}`, 'info');
+        }
+
+        function renderChatList() {
+            const list = document.getElementById('chatList');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = state.chats.filter(c => c.title.toLowerCase().includes(search));
+            
+            if (filtered.length === 0) {
+                list.innerHTML = '<p class="text-center text-slate-500 text-sm mt-4">لا توجد محادثات</p>';
+                return;
+            }
+            
+            list.innerHTML = filtered.map(chat => `
+                <div class="group flex items-center justify-between p-2 rounded-lg cursor-pointer transition ${chat.id === state.activeChatId ? 'bg-slate-800 border border-slate-700' : 'hover:bg-slate-800/50 border border-transparent'}" onclick="loadChat('${chat.id}')">
+                    <div class="flex-1 truncate text-sm text-slate-300 pr-2">${escapeHtml(chat.title)}</div>
+                    <div class="hidden group-hover:flex gap-1">
+                        <button onclick="event.stopPropagation(); renameChat('${chat.id}')" class="text-slate-400 hover:text-white p-1" title="إعادة تسمية"><i class="fas fa-edit text-xs"></i></button>
+                        <button onclick="event.stopPropagation(); deleteChat('${chat.id}')" class="text-red-400 hover:text-red-300 p-1" title="حذف"><i class="fas fa-trash text-xs"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function startNewChat() {
+            state.activeChatId = null;
+            document.getElementById('messagesContainer').innerHTML = `
+                <div id="welcomeScreen" class="h-full flex flex-col items-center justify-center text-center fade-in">
+                    <div class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 mb-6">
+                        <i class="fas fa-robot text-4xl text-white"></i>
+                    </div>
+                    <h1 class="text-3xl font-bold text-white mb-2">مرحباً بك في أثير</h1>
+                    <p class="text-slate-400 max-w-md">منصتك الذكية للتحدث مع نماذج Mistral. اسأل، أنشئ أكواد، أو طلب ملفات ومشاريع كاملة.</p>
+                </div>
+            `;
+            renderChatList();
+            if (window.innerWidth < 768) toggleSidebar();
+        }
+
+        function loadChat(id) {
+            state.activeChatId = id;
+            saveState();
+            renderChatList();
+            renderMessages();
+            if (window.innerWidth < 768) toggleSidebar();
+        }
+
+        function deleteChat(id) {
+            if (confirm('هل أنت متأكد من حذف هذه المحادثة؟')) {
+                state.chats = state.chats.filter(c => c.id !== id);
+                if (state.activeChatId === id) startNewChat();
+                saveState();
+                renderChatList();
+            }
+        }
+
+        function renameChat(id) {
+            const chat = state.chats.find(c => c.id === id);
+            const newTitle = prompt('أدخل العنوان الجديد:', chat.title);
+            if (newTitle && newTitle.trim()) {
+                chat.title = newTitle.trim();
+                saveState();
+                renderChatList();
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function renderMessages() {
+            const container = document.getElementById('messagesContainer');
+            container.innerHTML = '';
+            
+            const chat = state.chats.find(c => c.id === state.activeChatId);
+            if (!chat || chat.messages.length === 0) {
+                container.innerHTML = `
+                    <div id="welcomeScreen" class="h-full flex flex-col items-center justify-center text-center fade-in">
+                        <div class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 mb-6">
+                            <i class="fas fa-robot text-4xl text-white"></i>
+                        </div>
+                        <h1 class="text-3xl font-bold text-white mb-2">مرحباً بك في أثير</h1>
+                        <p class="text-slate-400 max-w-md">منصتك الذكية للتحدث مع نماذج Mistral. اسأل، أنشئ أكواد، أو طلب ملفات ومشاريع كاملة.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            chat.messages.forEach(msg => {
+                if (msg.role === 'system') return;
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `flex fade-in ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`;
+                
+                const bubble = document.createElement('div');
+                bubble.className = `max-w-[90%] md:max-w-[75%] p-4 shadow-sm ${msg.role === 'user' ? 'msg-user' : 'msg-ai'}`;
+                
+                if (msg.role === 'assistant') {
+                    const mdContainer = document.createElement('div');
+                    mdContainer.className = 'markdown-body text-slate-200';
+                    const rawHtml = marked.parse(msg.processedContent || msg.content);
+                    mdContainer.innerHTML = DOMPurify.sanitize(rawHtml);
+                    mdContainer.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+                    
+                    mdContainer.querySelectorAll('pre').forEach(pre => {
+                        const btn = document.createElement('button');
+                        btn.className = 'absolute top-2 left-2 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-1 rounded z-10 transition';
+                        btn.innerText = 'نسخ';
+                        btn.onclick = () => {
+                            navigator.clipboard.writeText(pre.innerText);
+                            btn.innerText = 'تم النسخ!';
+                            setTimeout(() => btn.innerText = 'نسخ', 2000);
+                        };
+                        pre.style.position = 'relative';
+                        pre.appendChild(btn);
+                    });
+                    
+                    bubble.appendChild(mdContainer);
+                    
+                    if (msg.files && msg.files.length > 0) {
+                        const filesContainer = document.createElement('div');
+                        filesContainer.className = 'mt-4 space-y-3';
+                        msg.files.forEach(file => filesContainer.appendChild(createFileCard(file)));
+                        bubble.appendChild(filesContainer);
+                    }
+                    
+                    if (!state.isStreaming) {
+                        const actions = document.createElement('div');
+                        actions.className = 'flex gap-3 mt-3 pt-3 border-t border-slate-700/50 text-xs';
+                        const regenBtn = document.createElement('button');
+                        regenBtn.className = 'text-slate-400 hover:text-indigo-400 transition flex items-center gap-1';
+                        regenBtn.innerHTML = '<i class="fas fa-sync-alt"></i> إعادة التوليد';
+                        regenBtn.onclick = () => regenerateResponse(msg.id);
+                        actions.appendChild(regenBtn);
+                        bubble.appendChild(actions);
+                    }
+                } else {
+                    bubble.innerHTML = `
+                        <div class="flex justify-between items-start gap-2">
+                            <div class="flex-1 whitespace-pre-wrap">${escapeHtml(msg.content)}</div>
+                            ${!state.isStreaming ? `<button onclick="editMessage('${msg.id}')" class="text-white/50 hover:text-white p-1 transition" title="تعديل"><i class="fas fa-edit text-xs"></i></button>` : ''}
+                        </div>
+                    `;
+                }
+                
+                msgDiv.appendChild(bubble);
+                container.appendChild(msgDiv);
+            });
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function updateLastMessageDOM(rawContent) {
+            const container = document.getElementById('messagesContainer');
+            const bubbles = container.querySelectorAll('.msg-ai .markdown-body');
+            if (bubbles.length > 0) {
+                const lastBubble = bubbles[bubbles.length - 1];
+                if (!rawContent) {
+                    lastBubble.innerHTML = `<div class="flex gap-2 items-center h-6">
+                        <div class="w-2 h-2 bg-slate-400 rounded-full typing-dot"></div>
+                        <div class="w-2 h-2 bg-slate-400 rounded-full typing-dot"></div>
+                        <div class="w-2 h-2 bg-slate-400 rounded-full typing-dot"></div>
+                    </div>`;
+                } else {
+                    let processed = rawContent.replace(/```(\w+)\s+filename="([^"]+)"\n/g, "```$1\n");
+                    const rawHtml = marked.parse(processed);
+                    lastBubble.innerHTML = DOMPurify.sanitize(rawHtml);
+                    lastBubble.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+                }
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        function createFileCard(file) {
+            const div = document.createElement('div');
+            div.className = 'bg-slate-800/80 border border-slate-700 rounded-xl p-4 flex flex-col gap-3 shadow-md fade-in';
+            
+            const header = document.createElement('div');
+            header.className = 'flex items-center justify-between border-b border-slate-700 pb-2';
+            header.innerHTML = `
+                <div class="flex items-center gap-2 text-indigo-400 font-bold">
+                    <i class="fas fa-file-code"></i> ${escapeHtml(file.filename)}
+                </div>
+                <span class="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300">${escapeHtml(file.language)}</span>
+            `;
+            
+            const preview = document.createElement('div');
+            preview.className = 'text-sm text-slate-400 max-h-24 overflow-y-auto bg-slate-900 p-2 rounded font-mono text-xs whitespace-pre';
+            preview.innerText = file.content.substring(0, 150) + (file.content.length > 150 ? '...' : '');
+            
+            const actions = document.createElement('div');
+            actions.className = 'flex gap-2 mt-1';
+            
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'flex-1 bg-slate-700 hover:bg-slate-600 py-1.5 rounded text-sm transition';
+            copyBtn.innerText = 'نسخ';
+            copyBtn.onclick = () => {
+                navigator.clipboard.writeText(file.content);
+                copyBtn.innerText = 'تم النسخ!';
+                setTimeout(() => copyBtn.innerText = 'نسخ', 2000);
+            };
+            
+            const dlBtn = document.createElement('button');
+            dlBtn.className = 'flex-1 bg-indigo-600 hover:bg-indigo-500 py-1.5 rounded text-sm transition flex items-center justify-center gap-1';
+            dlBtn.innerHTML = '<i class="fas fa-download"></i> تنزيل';
+            dlBtn.onclick = () => {
+                const blob = new Blob([file.content], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = file.filename;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+            
+            actions.appendChild(copyBtn);
+            actions.appendChild(dlBtn);
+            
+            div.appendChild(header);
+            div.appendChild(preview);
+            div.appendChild(actions);
+            return div;
+        }
+
+        function postProcessFiles(chat, msgId) {
+            const msg = chat.messages.find(m => m.id === msgId);
+            if (!msg) return;
+            
+            const regex = /```(\w+)\s+filename="([^"]+)"\n([\s\S]*?)```/g;
+            let match;
+            const files = [];
+            let processedContent = msg.content;
+            
+            while ((match = regex.exec(msg.content)) !== null) {
+                files.push({ language: match[1], filename: match[2], content: match[3] });
+                processedContent = processedContent.replace(match[0], "```" + match[1] + "\n" + match[3] + "```");
+            }
+            
+            msg.files = files;
+            msg.processedContent = processedContent;
+        }
+
+        function updateInputState() {
+            const sendBtn = document.getElementById('sendBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            if (state.isStreaming) {
+                sendBtn.classList.add('hidden');
+                stopBtn.classList.remove('hidden');
+                stopBtn.classList.add('flex');
+            } else {
+                sendBtn.classList.remove('hidden');
+                stopBtn.classList.add('hidden');
+                stopBtn.classList.remove('flex');
+            }
+        }
+
+        function handleSend() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if (!text || state.isStreaming) return;
+            if (!state.apiKey) { showToast('الرجاء إدخال مفتاح API في الإعدادات', 'error'); openSettings(); return; }
+            
+            let chat = state.chats.find(c => c.id === state.activeChatId);
+            if (!chat) {
+                chat = { id: crypto.randomUUID(), title: text.substring(0, 30) + '...', messages: [] };
+                state.chats.unshift(chat);
+                state.activeChatId = chat.id;
+                renderChatList();
+            }
+            
+            chat.messages.push({ role: 'user', content: text, id: crypto.randomUUID() });
+            input.value = '';
+            input.style.height = 'auto';
+            saveState();
+            triggerAPI();
+        }
+
+        async function triggerAPI() {
+            const chat = state.chats.find(c => c.id === state.activeChatId);
+            if (!chat) return;
+            
+            const aiMsgId = crypto.randomUUID();
+            chat.messages.push({ role: 'assistant', content: '', id: aiMsgId });
+            renderMessages();
+            updateLastMessageDOM('');
+            saveState();
+            
+            state.isStreaming = true;
+            updateInputState();
+            
+            try {
+                state.abortController = new AbortController();
+                const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${state.apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: state.currentModel,
+                        messages: [{ role: 'system', content: state.settings.systemPrompt }, ...chat.messages.filter(m => m.role !== 'system')],
+                        temperature: state.settings.temperature,
+                        max_tokens: state.settings.maxTokens,
+                        stream: true
+                    }),
+                    signal: state.abortController.signal
+                });
+                
+                if (!response.ok) {
+                    const errData = await response.json().catch(()=>({}));
+                    throw new Error(errData.error?.message || 'فشل الاتصال بالخادم (تحقق من المفتاح أو النموذج)');
+                }
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.substring(6);
+                            if (data === '[DONE]') continue;
+                            try {
+                                const json = JSON.parse(data);
+                                const token = json.choices[0]?.delta?.content || '';
+                                chat.messages.find(m => m.id === aiMsgId).content += token;
+                                updateLastMessageDOM(chat.messages.find(m => m.id === aiMsgId).content);
+                            } catch (e) {}
+                        }
+                    }
+                }
+                postProcessFiles(chat, aiMsgId);
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    chat.messages.find(m => m.id === aiMsgId).content += `\n\n[خطأ: ${error.message}]`;
+                    showToast(error.message, 'error');
+                }
+            } finally {
+                state.isStreaming = false;
+                state.abortController = null;
+                updateInputState();
+                saveState();
+                renderMessages();
+            }
+        }
+
+        function stopGeneration() {
+            if (state.abortController) state.abortController.abort();
+        }
+
+        function regenerateResponse(aiMsgId) {
+            if (state.isStreaming) return;
+            const chat = state.chats.find(c => c.id === state.activeChatId);
+            const msgIndex = chat.messages.findIndex(m => m.id === aiMsgId);
+            if (msgIndex > -1) {
+                chat.messages = chat.messages.slice(0, msgIndex);
+                saveState();
+                triggerAPI();
+            }
+        }
+
+        function editMessage(msgId) {
+            if (state.isStreaming) return;
+            const chat = state.chats.find(c => c.id === state.activeChatId);
+            const msgIndex = chat.messages.findIndex(m => m.id === msgId);
+            if (msgIndex === -1) return;
+            
+            const newContent = prompt('تعديل الرسالة:', chat.messages[msgIndex].content);
+            if (newContent && newContent.trim()) {
+                chat.messages[msgIndex].content = newContent.trim();
+                chat.messages = chat.messages.slice(0, msgIndex + 1);
+                saveState();
+                triggerAPI();
+            }
+        }
+
+        function openSettings() {
+            document.getElementById('settingsModal').classList.remove('hidden');
+            document.getElementById('apiKeyInput').value = state.apiKey;
+            document.getElementById('systemPromptInput').value = state.settings.systemPrompt;
+            document.getElementById('tempRange').value = state.settings.temperature;
+            document.getElementById('tempValue').innerText = state.settings.temperature;
+            document.getElementById('maxTokensInput').value = state.settings.maxTokens;
+            
+            const select = document.getElementById('defaultModelSelect');
+            select.innerHTML = MISTRAL_MODELS.map(m => `<option value="${m.id}" ${m.id === state.currentModel ? 'selected' : ''}>${m.name}</option>`).join('');
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.add('hidden');
+            saveState();
+        }
+
+        function saveApiKey() {
+            state.apiKey = document.getElementById('apiKeyInput').value.trim();
+            saveState();
+            updateConnectionStatus();
+            showToast('تم حفظ المفتاح', 'success');
+        }
+
+        function toggleApiKeyVisibility() {
+            const input = document.getElementById('apiKeyInput');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        async function testConnection() {
+            const key = document.getElementById('apiKeyInput').value.trim();
+            if (!key) return showToast('أدخل المفتاح أولاً', 'error');
+            const msg = document.getElementById('apiStatusMsg');
+            msg.className = 'text-sm text-yellow-400 mt-1';
+            msg.innerText = 'جاري الاختبار...';
+            msg.classList.remove('hidden');
+            try {
+                const res = await fetch('https://api.mistral.ai/v1/models', { headers: { 'Authorization': `Bearer ${key}` } });
+                if (res.ok) {
+                    msg.className = 'text-sm text-green-400 mt-1';
+                    msg.innerText = '✓ الاتصال ناجح!';
+                } else {
+                    msg.className = 'text-sm text-red-400 mt-1';
+                    msg.innerText = '✗ فشل الاتصال: مفتاح غير صالح';
+                }
+            } catch (e) {
+                msg.className = 'text-sm text-red-400 mt-1';
+                msg.innerText = '✗ خطأ في الشبكة';
+            }
+        }
+
+        function exportData() {
+            const data = { userId: state.userId, chats: state.chats, settings: state.settings };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'aether_backup.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function clearAllData() {
+            if (confirm('سيتم حذف جميع المحادثات والبيانات المحلية. هل تريد المتابعة؟')) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
